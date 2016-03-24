@@ -1,0 +1,225 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html hasbrowserhandlers="true" dir="ltr"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<script type="application/javascript">
+  "use strict";
+
+  var Ci = Components.interfaces;
+  var strBundleService = Components.classes["@mozilla.org/intl/stringbundle;1"].getService(Ci.nsIStringBundleService);
+  var pluginsbundle = strBundleService.createBundle("chrome://global/locale/plugins.properties");
+  var regionbundle = strBundleService.createBundle("chrome://global-region/locale/region.properties");
+
+  document.writeln("<title>" + pluginsbundle.GetStringFromName("title_label") + "<\/title>");
+</script><title>About Plugins</title>
+
+<link rel="stylesheet" type="text/css" href="About%20Plugins_files/plugins.css">
+<link rel="stylesheet" type="text/css" href="chrome://global/skin/plugins.css">
+</head>
+<body>
+<div id="outside">
+<script type="application/javascript">
+  "use strict";
+
+  function setDirection() {
+    var frame = document.getElementById("directionDetector");
+    var direction = frame.contentDocument
+                         .defaultView
+                         .window
+                         .getComputedStyle(frame.contentDocument.getElementById("target"), "")
+                         .getPropertyValue("direction");
+    document.body.removeChild(frame);
+    document.dir = direction;
+  }
+
+  function setupDirection() {
+    var frame = document.createElement("iframe");
+    frame.setAttribute("id", "directionDetector");
+    frame.setAttribute("src", "chrome://global/content/directionDetector.html");
+    frame.setAttribute("width", "0");
+    frame.setAttribute("height", "0");
+    frame.setAttribute("style", "visibility: hidden;");
+    frame.setAttribute("onload", "setDirection();");
+    document.body.appendChild(frame);
+  }
+  setupDirection();
+
+  /* JavaScript to enumerate and display all installed plug-ins
+
+   * First, refresh plugins in case anything has been changed recently in
+   * prefs: (The "false" argument tells refresh not to reload or activate
+   * any plug-ins that would be active otherwise.  In contrast, one would
+   * use "true" in the case of ASD instead of restarting)
+   */
+  navigator.plugins.refresh(false);
+
+  addMessageListener("PluginList", function({ data: aPlugins }) {
+    var fragment = document.createDocumentFragment();
+
+    // "Installed plugins"
+    var id, label;
+    if (aPlugins.length > 0) {
+      id = "plugs";
+      label = "installedplugins_label";
+    } else {
+      id = "noplugs";
+      label = "nopluginsareinstalled_label";
+    }
+    var enabledplugins = document.createElement("h1");
+    enabledplugins.setAttribute("id", id);
+    enabledplugins.appendChild(document.createTextNode(pluginsbundle.GetStringFromName(label)));
+    fragment.appendChild(enabledplugins);
+
+    // "Find updates for installed plugins at " ...
+    var findpluginupdates = document.createElement("div");
+    findpluginupdates.setAttribute("id", "findpluginupdates");
+    findpluginupdates.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("findpluginupdates_label") + " "));
+    fragment.appendChild(findpluginupdates);
+
+    // ... "mozilla.com/plugincheck"
+    var pluginupdates = document.createElement("a");
+    pluginupdates.setAttribute("href", regionbundle.GetStringFromName("pluginupdates_url"));
+    pluginupdates.appendChild(document.createTextNode(regionbundle.GetStringFromName("pluginupdates_label")));
+    findpluginupdates.appendChild(pluginupdates);
+
+    fragment.appendChild(document.createElement("hr"));
+
+    var stateNames = {};
+    ["STATE_SOFTBLOCKED",
+     "STATE_BLOCKED",
+     "STATE_OUTDATED",
+     "STATE_VULNERABLE_UPDATE_AVAILABLE",
+     "STATE_VULNERABLE_NO_UPDATE"].forEach(function(label) {
+      stateNames[Ci.nsIBlocklistService[label]] = label;
+    });
+
+    for (var i = 0; i < aPlugins.length; i++) {
+      var plugin = aPlugins[i];
+      if (plugin) {
+        // "Shockwave Flash"
+        var plugname = document.createElement("h2");
+        plugname.setAttribute("class", "plugname");
+        plugname.appendChild(document.createTextNode(plugin.name));
+        fragment.appendChild(plugname);
+
+        var dl = document.createElement("dl");
+        fragment.appendChild(dl);
+
+        // "File: Flash Player.plugin"
+        var fileDd = document.createElement("dd");
+        var file = document.createElement("span");
+        file.setAttribute("class", "label");
+        file.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("file_label") + " "));
+        fileDd.appendChild(file);
+        fileDd.appendChild(document.createTextNode(plugin.pluginLibraries));
+        dl.appendChild(fileDd);
+
+        // "Path: /usr/lib/mozilla/plugins/libtotem-cone-plugin.so"
+        var pathDd = document.createElement("dd");
+        var path = document.createElement("span");
+        path.setAttribute("class", "label");
+        path.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("path_label") + " "));
+        pathDd.appendChild(path);
+        pathDd.appendChild(document.createTextNode(plugin.pluginFullpath));
+        dl.appendChild(pathDd);
+
+        // "Version: "
+        var versionDd = document.createElement("dd");
+        var version = document.createElement("span");
+        version.setAttribute("class", "label");
+        version.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("version_label") + " "));
+        versionDd.appendChild(version);
+        versionDd.appendChild(document.createTextNode(plugin.version));
+        dl.appendChild(versionDd);
+
+        // "State: "
+        var stateDd = document.createElement("dd");
+        var state = document.createElement("span");
+        state.setAttribute("label", "state");
+        state.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("state_label") + " "));
+        stateDd.appendChild(state);
+        status = plugin.isActive ? pluginsbundle.GetStringFromName("state_enabled") : pluginsbundle.GetStringFromName("state_disabled");
+        if (plugin.blocklistState in stateNames) {
+          status += " (" + stateNames[plugin.blocklistState] + ")";
+        }
+        stateDd.appendChild(document.createTextNode(status));
+        dl.appendChild(stateDd);
+
+        // Plugin Description
+        var descDd = document.createElement("dd");
+        descDd.appendChild(document.createTextNode(plugin.description));
+        dl.appendChild(descDd);
+
+        // MIME Type table
+        var mimetypeTable = document.createElement("table");
+        mimetypeTable.setAttribute("border", "1");
+        mimetypeTable.setAttribute("class", "contenttable");
+        fragment.appendChild(mimetypeTable);
+
+        var thead = document.createElement("thead");
+        mimetypeTable.appendChild(thead);
+        var tr = document.createElement("tr");
+        thead.appendChild(tr);
+
+        // "MIME Type" column header
+        var typeTh = document.createElement("th");
+        typeTh.setAttribute("class", "type");
+        typeTh.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("mimetype_label")));
+        tr.appendChild(typeTh);
+
+        // "Description" column header
+        var descTh = document.createElement("th");
+        descTh.setAttribute("class", "desc");
+        descTh.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("description_label")));
+        tr.appendChild(descTh);
+
+        // "Suffixes" column header
+        var suffixesTh = document.createElement("th");
+        suffixesTh.setAttribute("class", "suff");
+        suffixesTh.appendChild(document.createTextNode(pluginsbundle.GetStringFromName("suffixes_label")));
+        tr.appendChild(suffixesTh);
+
+        var tbody = document.createElement("tbody");
+        mimetypeTable.appendChild(tbody);
+
+        var mimeTypes = plugin.pluginMimeTypes;
+        for (var j = 0; j < mimeTypes.length; j++) {
+          var mimetype = mimeTypes[j];
+          if (mimetype) {
+            var mimetypeRow = document.createElement("tr");
+            tbody.appendChild(mimetypeRow);
+
+            // "application/x-shockwave-flash"
+            var typename = document.createElement("td");
+            typename.appendChild(document.createTextNode(mimetype.type));
+            mimetypeRow.appendChild(typename);
+
+            // "Shockwave Flash"
+            var description = document.createElement("td");
+            description.appendChild(document.createTextNode(mimetype.description));
+            mimetypeRow.appendChild(description);
+
+            // "swf"
+            var suffixes = document.createElement("td");
+            suffixes.appendChild(document.createTextNode(mimetype.suffixes));
+            mimetypeRow.appendChild(suffixes);
+          }
+        }
+      }
+    }
+
+    document.getElementById("outside").appendChild(fragment);
+  });
+
+  sendAsyncMessage("RequestPlugins");
+</script>
+<h1 id="plugs">Installed plugins</h1><div id="findpluginupdates">Find updates for installed plugins at <a href="http://www.mozilla.com/plugincheck/">mozilla.com/plugincheck</a></div><hr><h2 class="plugname">OpenH264 Video Codec provided by Cisco Systems, Inc.</h2><dl><dd><span class="label">File: </span>1.5.3</dd><dd><span class="label">Path: </span>/home/mike/.mozilla/firefox/mwad0hks.default/gmp-gmpopenh264/1.5.3</dd><dd><span class="label">Version: </span>1.5.3</dd><dd><span label="state">State: </span>Enabled</dd><dd>This
+ plugin is automatically installed by Mozilla to comply with the WebRTC 
+specification and to enable WebRTC calls with devices that require the 
+H.264 video codec. Visit http://www.openh264.org/ to view the codec 
+source code and learn more about the implementation.</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody></tbody></table><h2 class="plugname">QuickTime Plug-in 7.6.6</h2><dl><dd><span class="label">File: </span>libtotem-narrowspace-plugin.so</dd><dd><span class="label">Path: </span>/usr/lib/mozilla/plugins/libtotem-narrowspace-plugin.so</dd><dd><span class="label">Version: </span></dd><dd><span label="state">State: </span>Enabled</dd><dd>The  Videos  3.8.2 plugin handles video and audio streams.</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody><tr><td>video/quicktime</td><td>QuickTime video</td><td>mov</td></tr><tr><td>video/mp4</td><td>MPEG-4 video</td><td>mp4</td></tr><tr><td>image/x-macpaint</td><td>MacPaint Bitmap image</td><td>pntg</td></tr><tr><td>image/x-quicktime</td><td>Macintosh Quickdraw/PICT drawing</td><td>pict, pict1, pict2</td></tr><tr><td>video/x-m4v</td><td>MPEG-4 video</td><td>m4v</td></tr><tr><td>application/vnd.apple.mpegurl</td><td>HTTP Live Streaming playlist</td><td>m3u8</td></tr></tbody></table><h2 class="plugname">Windows Media Player Plug-in 10 (compatible; Videos)</h2><dl><dd><span class="label">File: </span>libtotem-gmp-plugin.so</dd><dd><span class="label">Path: </span>/usr/lib/mozilla/plugins/libtotem-gmp-plugin.so</dd><dd><span class="label">Version: </span></dd><dd><span label="state">State: </span>Enabled</dd><dd>The  Videos  3.8.2 plugin handles video and audio streams.</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody><tr><td>application/x-mplayer2</td><td>AVI video</td><td>avi, wma, wmv</td></tr><tr><td>video/x-ms-asf-plugin</td><td>ASF video</td><td>asf, wmv</td></tr><tr><td>video/x-msvideo</td><td>AVI video</td><td>asf, wmv</td></tr><tr><td>video/x-ms-asf</td><td>ASF video</td><td>asf</td></tr><tr><td>video/x-ms-wmv</td><td>Windows Media video</td><td>wmv</td></tr><tr><td>video/x-wmv</td><td>Windows Media video</td><td>wmv</td></tr><tr><td>video/x-ms-wvx</td><td>Windows Media video</td><td>wmv</td></tr><tr><td>video/x-ms-wm</td><td>Windows Media video</td><td>wmv</td></tr><tr><td>video/x-ms-wmp</td><td>Windows Media video</td><td>wmv</td></tr><tr><td>application/x-ms-wms</td><td>Windows Media video</td><td>wms</td></tr><tr><td>application/x-ms-wmp</td><td>Windows Media video</td><td>wmp</td></tr><tr><td>application/asx</td><td>Microsoft ASX playlist</td><td>asx</td></tr><tr><td>audio/x-ms-wma</td><td>Windows Media audio</td><td>wma</td></tr></tbody></table><h2 class="plugname">DivX® Web Player</h2><dl><dd><span class="label">File: </span>libtotem-mully-plugin.so</dd><dd><span class="label">Path: </span>/usr/lib/mozilla/plugins/libtotem-mully-plugin.so</dd><dd><span class="label">Version: </span></dd><dd><span label="state">State: </span>Enabled</dd><dd>DivX Web Player version 1.4.0.233</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody><tr><td>video/divx</td><td>AVI video</td><td>divx</td></tr></tbody></table><h2 class="plugname">VLC Multimedia Plugin (compatible Videos 3.8.2)</h2><dl><dd><span class="label">File: </span>libtotem-cone-plugin.so</dd><dd><span class="label">Path: </span>/usr/lib/mozilla/plugins/libtotem-cone-plugin.so</dd><dd><span class="label">Version: </span></dd><dd><span label="state">State: </span>Enabled</dd><dd>The  Videos  3.8.2 plugin handles video and audio streams.</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody><tr><td>application/x-vlc-plugin</td><td>VLC Multimedia Plugin</td><td></td></tr><tr><td>application/vlc</td><td>VLC Multimedia Plugin</td><td></td></tr><tr><td>video/x-google-vlc-plugin</td><td>VLC Multimedia Plugin</td><td></td></tr><tr><td>application/x-ogg</td><td>Ogg multimedia file</td><td>ogg</td></tr><tr><td>application/ogg</td><td>Ogg multimedia file</td><td>ogg</td></tr><tr><td>audio/ogg</td><td>Ogg Audio</td><td>oga</td></tr><tr><td>audio/x-ogg</td><td>Ogg Audio</td><td>ogg</td></tr><tr><td>audio/x-vorbis+ogg</td><td>Ogg Vorbis audio</td><td>ogg</td></tr><tr><td>video/ogg</td><td>Ogg Video</td><td>ogv</td></tr><tr><td>video/x-ogg</td><td>Ogg Video</td><td>ogg</td></tr><tr><td>video/x-theora+ogg</td><td>Ogg Theora video</td><td>ogg</td></tr><tr><td>application/annodex</td><td>Annodex exchange format</td><td>anx</td></tr><tr><td>audio/annodex</td><td>Annodex Audio</td><td>axa</td></tr><tr><td>video/annodex</td><td>Annodex Video</td><td>axv</td></tr><tr><td>video/mpeg</td><td>MPEG video</td><td>mpg, mpeg, mpe</td></tr><tr><td>audio/wav</td><td>WAV audio</td><td>wav</td></tr><tr><td>audio/x-wav</td><td>WAV audio</td><td>wav</td></tr><tr><td>audio/mpeg</td><td>MP3 audio</td><td>mp3</td></tr><tr><td>application/x-nsv-vp3-mp3</td><td>NullSoft video</td><td>nsv</td></tr><tr><td>video/flv</td><td>Flash video</td><td>flv</td></tr><tr><td>video/webm</td><td>WebM video</td><td>webm</td></tr><tr><td>application/x-totem-plugin</td><td>Videos multimedia plugin</td><td></td></tr><tr><td>audio/midi</td><td>MIDI audio</td><td>mid, midi</td></tr></tbody></table><h2 class="plugname">Shockwave Flash</h2><dl><dd><span class="label">File: </span>libflashplayer.so</dd><dd><span class="label">Path: </span>/opt/mint-flashplugin-11/libflashplayer.so</dd><dd><span class="label">Version: </span>11.2.202.356</dd><dd><span label="state">State: </span>Enabled (STATE_VULNERABLE_UPDATE_AVAILABLE)</dd><dd>Shockwave Flash 11.2 r202</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody><tr><td>application/x-shockwave-flash</td><td>Shockwave Flash</td><td>swf</td></tr><tr><td>application/futuresplash</td><td>FutureSplash Player</td><td>spl</td></tr></tbody></table><h2 class="plugname">Java(TM) Plug-in 11.11.2</h2><dl><dd><span class="label">File: </span>libnpjp2.so</dd><dd><span class="label">Path: </span>/usr/lib/jvm/java-8-oracle/jre/lib/i386/libnpjp2.so</dd><dd><span class="label">Version: </span>11.11.2</dd><dd><span label="state">State: </span>Enabled (STATE_VULNERABLE_UPDATE_AVAILABLE)</dd><dd>Next Generation Java Plug-in 11.11.2 for Mozilla browsers</dd></dl><table class="contenttable" border="1"><thead><tr><th class="type">MIME Type</th><th class="desc">Description</th><th class="suff">Suffixes</th></tr></thead><tbody><tr><td>application/x-java-vm</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet</td><td>Java&amp;#153 Plug-in Applet</td><td></td></tr><tr><td>application/x-java-bean</td><td>Java&amp;#153 Plug-in JavaBeans</td><td></td></tr><tr><td>application/x-java-applet;version=1.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.1.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.1.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.1.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.1.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.1.3</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.1.3</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.2.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.2.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.2.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.2.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.3</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.3</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.3.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.3.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.4</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.4</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.4.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.4.1</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.4.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.4.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.5</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.5</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.6</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.6</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.7</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.7</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;jpi-version=1.8.0_11</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;jpi-version=1.8.0_11</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;version=1.8</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-bean;version=1.8</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;deploy=11.11.2</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-applet;javafx=8.0.11</td><td>Java&amp;#153 Plug-in</td><td></td></tr><tr><td>application/x-java-vm-npruntime</td><td>Java&amp;#153 Plug-in</td><td></td></tr></tbody></table></div>
+
+
+</body></html>
