@@ -1,0 +1,10 @@
+Thu 24 Mar 2016 15:47:02 AEDT 
+Notice when examining the about:plugins html page that /usr/lib/mozilla/plugins is used a lot for plugins but some maunfacturers choose to use another directory.  Shockwave Flash and Java use separate directories. Look for UPDATE on the html page to show those plugins that need an update. 
+
+Open "Control Centre", on say Linux Mint, and look for Oracle Plugin Control Panel.  Other Java providers may have other things happening here. 
+
+Notice info box ->Command to launch default browser here e.g. /usr/bin/firefox
+Notice temporary files settings here e.g. /home/mike/.java/deployment/cache
+
+
+
