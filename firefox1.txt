@@ -1,0 +1,55 @@
+FROM : http://java.com/en/download/help/linux_install.xml
+Thu 24 Mar 2016 13:25:59 AEDT 
+
+Enable and Configure
+Firefox or Mozilla
+To configure the Java Plugin follow these steps:
+
+    Exit Firefox browser if it is already running.
+    Uninstall any previous installations of Java Plugin.
+    Only one Java Plugin can be used at a time. When you want to use a different plugin, or version of a plugin, remove the symbolic links to any other versions and create a fresh symbolic link to the new one.
+    Create a symbolic link to the libnpjp2.so file in the browser plugins directory
+        Go to the plugins sub-directory under the Firefox installation directory
+        cd <Firefox installation directory>/plugins
+        Create plugins directory if it does not exist.
+        Create the symbolic link
+        ln -s <Java installation directory>/lib/i386/libnpjp2.so
+
+    Note: If you are upgrading your Java version then before creating new symbolic link you should remove old symbolic link to enable latest downloaded Java.
+
+    To remove old symbolic link:
+    type cd <Firefox installation directory>/plugins
+    rm libjavaplugin_oji.so
+    Example
+        If Firefox is installed at this directory:
+        /usr/lib/<Firefox installation directory>
+        And if the Java is installed at this directory:
+        /usr/java/<Java installation directory>
+        Then type in the terminal window to go to the browser plug-in directory:
+        /usr/lib/<Firefox installation directory>/plugins
+        Enter the following command to create a symbolic link to the Java Plug-in for the Mozilla browser.
+        ln -s /usr/java/<Java installation directory>/lib/i386/libnpjp2.so
+
+    Start the Firefox browser, or restart it if it is already up.
+
+    In Firefox, type about:plugins in the Location bar to confirm that the Java Plugin is loaded. You can also click the Tools menu to confirm that Java Console is there.
+
+Test Installation
+
+To test that Java is installed and working properly on your computer, run this test applet.
+Help Resources
+
+    Installing Java
+    Remove Older Versions
+    Disable Java
+    Using Java
+    General Questions
+    Mobile Java
+    Security
+    Support Options
+
+
+
+Find expert help on Java installation and setup
+
+

@@ -1,0 +1,1 @@
+firefox: /usr/bin/firefox /etc/firefox /usr/lib/firefox /usr/bin/X11/firefox /usr/share/firefox /usr/share/man/man1/firefox.1.gz
